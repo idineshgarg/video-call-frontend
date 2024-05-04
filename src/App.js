@@ -1,8 +1,6 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import VideoCallPage from "./pages/VideoCallPage";
 import LandingPage from "./pages/LandingPage";
-import VideoReceiver from "./pages/VideoReceiver";
-import Group from "./Components/Group";
 
 const router = createBrowserRouter([
   {
@@ -10,16 +8,8 @@ const router = createBrowserRouter([
     element: <LandingPage />,
   },
   {
-    path: "/call/:uuid",
+    path: "/call",
     element: <VideoCallPage />,
-  },
-  {
-    path: "/receiver/:uuid",
-    element: <VideoReceiver />,
-  },
-  {
-    path: "/group",
-    element: <Group />,
   },
 ]);
 

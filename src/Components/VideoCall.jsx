@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Peer } from "peerjs";
-import { connect } from "socket.io-client";
-import { v4 as uuidv4 } from "uuid";
 
 function addVideo(video, stream, videoDiv) {
   video.srcObject = stream;
@@ -11,10 +9,7 @@ function addVideo(video, stream, videoDiv) {
   videoDiv.append(video);
 }
 
-const socket = connect("http://localhost:4000/");
-const peerConnections = {};
-const roomID = "roomId";
-const VideoCall = ({ uuid }) => {
+const VideoCall = () => {
   const videoRef = useRef(null);
   const videoDivRef = useRef(null);
   const videoStreamRef = useRef();
@@ -22,34 +17,11 @@ const VideoCall = ({ uuid }) => {
   const receiverVideoRef = useRef(null);
   const receiverVideoDivRef = useRef(null);
   const receiverVideoStreamRef = useRef();
-  const [otherUser, setOtherUser] = useState("");
 
-  const peerRef = useRef(new Peer(uuidv4(), { debug: 1 }));
+  const peerRef = useRef(new Peer());
+  const inputRef = useRef();
+  const [peerId, setPeerId] = useState("");
 
-  const initializeSocket = () => {
-    socket.on("userJoined", (id) => {
-      console.log("new user joined");
-      const call = peerRef.current.call(id, videoStreamRef.current);
-      const vid = videoRef.current;
-      call.on("error", (err) => {
-        console.log(err);
-        alert(err);
-      });
-      call.on("stream", (userStream) => {
-        addVideo(vid, userStream);
-      });
-      call.on("close", () => {
-        vid.remove();
-        console.log("user disconect");
-      });
-      peerConnections[id] = call;
-    });
-    socket.on("userDisconnect", (id) => {
-      if (peerConnections[id]) {
-        peerConnections[id].close();
-      }
-    });
-  };
   const getMediaPermission = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -62,7 +34,6 @@ const VideoCall = ({ uuid }) => {
 
       peerRef.current.on("open", (id) => {
         const myId = id;
-        socket.emit("newUser", id, roomID);
       });
 
       peerRef.current.on("error", (err) => {
@@ -71,15 +42,59 @@ const VideoCall = ({ uuid }) => {
     } catch (error) {}
   }, []);
 
+  const answerCall = useCallback(async () => {
+    try {
+      const getUserMedia =
+        navigator.getUserMedia ||
+        navigator.webkitGetUserMedia ||
+        navigator.mozGetUserMedia;
+
+      peerRef.current.on("call", function (call) {
+        getUserMedia(
+          { video: true, audio: true },
+          function (stream) {
+            call.answer(stream);
+            receiverVideoStreamRef.current = stream;
+            call.on("stream", function (remoteStream) {
+              addVideo(
+                receiverVideoRef.current,
+                remoteStream,
+                receiverVideoDivRef.current
+              );
+            });
+            call.on("close", () => {
+              receiverVideoRef.current.srcObject = undefined;
+              receiverVideoStreamRef.current = null;
+            });
+          },
+          function (err) {
+            receiverVideoRef.current.srcObject = undefined;
+            receiverVideoStreamRef.current = null;
+          }
+        );
+      });
+    } catch (error) {}
+  }, []);
+
   useEffect(() => {
     getMediaPermission();
-    initializeSocket();
   }, [getMediaPermission]);
 
-  const makeACall = (otherUser) => {
+  useEffect(() => {
+    answerCall();
+  }, [answerCall]);
+
+  useEffect(() => {
+    peerRef.current.on("open", function (id) {
+      setPeerId(id);
+    });
+  }, []);
+
+  const makeACall = () => {
+    const otherUser = inputRef.current.value;
     const call = peerRef.current.call(otherUser, videoStreamRef.current);
 
-    console.log(peerRef.current, call);
+    inputRef.current = "";
     if (!call) {
       return;
     }
@@ -91,25 +106,55 @@ const VideoCall = ({ uuid }) => {
         receiverVideoDivRef.current
       );
     });
+
+    call.on("close", function () {
+      receiverVideoRef.current.srcObject = undefined;
+      receiverVideoStreamRef.current = null;
+    });
+    call.on("error", function () {
+      receiverVideoRef.current.srcObject = undefined;
+      receiverVideoStreamRef.current = null;
+    });
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(peerId);
   };
 
   return (
     <>
-      <button
-        onClick={() => {
-          makeACall("b91f5dd2-94ad-47fc-b0eb-d0dd856931f4");
-        }}
-        className="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-      >
-        Make call
-      </button>
-
-      <div ref={videoDivRef}>
-        <video ref={videoRef} />
+      <div className="flex flex-row py-10">
+        <input
+          type="text"
+          ref={inputRef}
+          id="uuid"
+          className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 outline-none mr-4"
+          placeholder="Enter UUID"
+          required
+        />
+        <button
+          onClick={makeACall}
+          className="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        >
+          Make call
+        </button>
       </div>
 
-      <div ref={receiverVideoDivRef}>
-        <video ref={receiverVideoRef} />
+      <p
+        className="text-lg text-white cursor-pointer"
+        onClick={copyToClipboard}
+      >
+        Your uuid: {peerId}
+      </p>
+
+      <div className="flex flex-row my-10">
+        <div ref={videoDivRef} className="w-6/12  h-6/12">
+          <video ref={videoRef} className="w-full h-full" />
+        </div>
+
+        <div ref={receiverVideoDivRef} className="w-6/12 h-6/12">
+          <video ref={receiverVideoRef} className="w-full h-full" />
+        </div>
       </div>
     </>
   );

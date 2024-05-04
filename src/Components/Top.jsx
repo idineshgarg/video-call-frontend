@@ -9,16 +9,8 @@ export default function Top() {
     setUUID(uuidv4());
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(UUID);
-  };
-
   const makeACall = () => {
     navigation(`/call/${UUID}`);
-  };
-
-  const receiveACall = () => {
-    navigation(`/receiver/${UUID}`);
   };
 
   return (
@@ -61,12 +53,6 @@ export default function Top() {
                     className="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                   >
                     Make call
-                  </button>
-                  <button
-                    onClick={receiveACall}
-                    className="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                  >
-                    Receive a call
                   </button>
                 </>
               ) : (
