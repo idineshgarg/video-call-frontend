@@ -10,7 +10,7 @@ export default function Top() {
   };
 
   const makeACall = () => {
-    navigation(`/call/${UUID}`);
+    navigation(`/call`);
   };
 
   return (
