@@ -148,12 +148,15 @@ const VideoCall = () => {
       </p>
 
       <div className="flex flex-row my-10">
-        <div ref={videoDivRef} className="w-6/12  h-6/12">
-          <video ref={videoRef} className="w-full h-full" />
+        <div ref={videoDivRef} className="w-6/12  h-6/12 aspect-square">
+          <video ref={videoRef} className="w-full h-full object-cover" />
         </div>
 
-        <div ref={receiverVideoDivRef} className="w-6/12 h-6/12">
-          <video ref={receiverVideoRef} className="w-full h-full" />
+        <div ref={receiverVideoDivRef} className="w-6/12 h-6/12 aspect-square">
+          <video
+            ref={receiverVideoRef}
+            className="w-full h-full object-cover"
+          />
         </div>
       </div>
     </>
